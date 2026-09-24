@@ -13,6 +13,7 @@ struct CueItem: Identifiable, Codable {
 struct ContentView: View {
     @State private var inputText = ""
     @State private var cues: [CueItem] = []
+    @FocusState private var isInputFocused: Bool
     func addCue() {
         if inputText.isEmpty {
             return
@@ -21,6 +22,7 @@ struct ContentView: View {
         cues.append(CueItem(text: inputText))
         inputText = ""
         saveCues()
+        isInputFocused = true
     }
     func saveCues() {
         if let data = try? JSONEncoder().encode(cues) {
@@ -38,6 +40,7 @@ struct ContentView: View {
         VStack {
             Text("Cue")
             TextField("", text: $inputText)
+                .focused($isInputFocused)
                 .padding()
                 .onSubmit {
                     addCue()
@@ -59,6 +62,10 @@ struct ContentView: View {
         }
         .onAppear {
             loadCues()
+
+            DispatchQueue.main.async {
+                isInputFocused = true
+            }
         }
     }
 }
