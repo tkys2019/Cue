@@ -14,12 +14,15 @@ struct ContentView: View {
     @State private var inputText = ""
     @State private var cues: [CueItem] = []
     @FocusState private var isInputFocused: Bool
+    @State private var isShowingCopied = false
+    @State private var copiedHideTask: Task<Void, Never>?
     func addCue() {
-        if inputText.isEmpty {
+        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty {
             return
         }
 
-        cues.append(CueItem(text: inputText))
+        cues.append(CueItem(text: text))
         inputText = ""
         saveCues()
         isInputFocused = true
@@ -35,22 +38,40 @@ struct ContentView: View {
             cues = savedCues
         }
     }
-    
+    func showCopiedToast() {
+        copiedHideTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.15)) {
+            isShowingCopied = true
+        }
+        copiedHideTask = Task {
+            try? await Task.sleep(for: .seconds(0.9))
+            if Task.isCancelled {
+                return
+            }
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isShowingCopied = false
+            }
+        }
+    }
+
     var body: some View {
         VStack {
-            Text("Cue")
             TextField("", text: $inputText)
                 .focused($isInputFocused)
                 .padding()
                 .onSubmit {
                     addCue()
                 }
-            Button("Add") {
-                addCue()
-            }
+            
             ForEach(cues) { cue in
                 HStack{
                     Text(cue.text)
+                        .onTapGesture {
+                            NSPasteboard.general.clearContents()
+                            if NSPasteboard.general.setString(cue.text, forType: .string) {
+                                showCopiedToast()
+                            }
+                        }
                     Button("×"){
                         cues.removeAll { item in
                             item.id == cue.id
@@ -58,6 +79,20 @@ struct ContentView: View {
                         saveCues()
                     }
                 }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .bottom) {
+            if isShowingCopied {
+                Text("Copied")
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 6))
+                    .padding(.bottom, 12)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
             }
         }
         .onAppear {
