@@ -1,4 +1,5 @@
 import SwiftUI
+import EventKit
 
 struct CueItem: Identifiable, Codable {
     let id : UUID
@@ -14,8 +15,8 @@ struct ContentView: View {
     @State private var inputText = ""
     @State private var cues: [CueItem] = []
     @FocusState private var isInputFocused: Bool
-    @State private var isShowingCopied = false
-    @State private var copiedHideTask: Task<Void, Never>?
+    @State private var toastMessage: String?
+    @State private var toastHideTask: Task<Void, Never>?
     func addCue() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.isEmpty {
@@ -38,19 +39,36 @@ struct ContentView: View {
             cues = savedCues
         }
     }
-    func showCopiedToast() {
-        copiedHideTask?.cancel()
+    func showToast(_ message: String) {
+        toastHideTask?.cancel()
         withAnimation(.easeInOut(duration: 0.15)) {
-            isShowingCopied = true
+            toastMessage = message
         }
-        copiedHideTask = Task {
+        toastHideTask = Task {
             try? await Task.sleep(for: .seconds(0.9))
             if Task.isCancelled {
                 return
             }
             withAnimation(.easeInOut(duration: 0.15)) {
-                isShowingCopied = false
+                toastMessage = nil
             }
+        }
+    }
+    func sendToReminders(_ text: String) async {
+        let store = EKEventStore()
+        do {
+            guard try await store.requestFullAccessToReminders(),
+                  let list = store.defaultCalendarForNewReminders() else {
+                showToast("Failed")
+                return
+            }
+            let reminder = EKReminder(eventStore: store)
+            reminder.title = text
+            reminder.calendar = list
+            try store.save(reminder, commit: true)
+            showToast("Added to Reminders")
+        } catch {
+            showToast("Failed")
         }
     }
 
@@ -69,7 +87,14 @@ struct ContentView: View {
                         .onTapGesture {
                             NSPasteboard.general.clearContents()
                             if NSPasteboard.general.setString(cue.text, forType: .string) {
-                                showCopiedToast()
+                                showToast("Copied")
+                            }
+                        }
+                        .contextMenu {
+                            Button("Send to Reminders") {
+                                Task {
+                                    await sendToReminders(cue.text)
+                                }
                             }
                         }
                     Button("×"){
@@ -83,8 +108,8 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .bottom) {
-            if isShowingCopied {
-                Text("Copied")
+            if let toastMessage {
+                Text(toastMessage)
                     .font(.caption)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
