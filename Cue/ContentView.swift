@@ -81,29 +81,34 @@ struct ContentView: View {
                     addCue()
                 }
             
-            ForEach(cues) { cue in
-                HStack{
-                    Text(cue.text)
-                        .onTapGesture {
-                            NSPasteboard.general.clearContents()
-                            if NSPasteboard.general.setString(cue.text, forType: .string) {
-                                showToast("Copied")
-                            }
-                        }
-                        .contextMenu {
-                            Button("Send to Reminders") {
-                                Task {
-                                    await sendToReminders(cue.text)
+            ScrollView {
+                VStack {
+                    ForEach(cues.reversed()) { cue in
+                        HStack{
+                            Text(cue.text)
+                                .onTapGesture {
+                                    NSPasteboard.general.clearContents()
+                                    if NSPasteboard.general.setString(cue.text, forType: .string) {
+                                        showToast("Copied")
+                                    }
                                 }
+                                .contextMenu {
+                                    Button("Send to Reminders") {
+                                        Task {
+                                            await sendToReminders(cue.text)
+                                        }
+                                    }
+                                }
+                            Button("×"){
+                                cues.removeAll { item in
+                                    item.id == cue.id
+                                }
+                                saveCues()
                             }
                         }
-                    Button("×"){
-                        cues.removeAll { item in
-                            item.id == cue.id
-                        }
-                        saveCues()
                     }
                 }
+                .frame(maxWidth: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
