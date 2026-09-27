@@ -1,12 +1,6 @@
 import WidgetKit
 import SwiftUI
 
-// Same shape, App Group and UserDefaults key ("cues") as the iPhone app's saved data.
-struct CueItem: Identifiable, Codable {
-    let id: UUID
-    let text: String
-}
-
 struct CueEntry: TimelineEntry {
     let date: Date
     let texts: [String]

@@ -1,26 +1,13 @@
 import SwiftUI
-import WidgetKit
-
-// Same shape and UserDefaults key ("cues") as the Mac app's saved data.
-// Stored in the App Group so the lock screen widget can read it.
-struct CueItem: Identifiable, Codable {
-    let id: UUID
-    let text: String
-
-    init(id: UUID = UUID(), text: String) {
-        self.id = id
-        self.text = text
-    }
-}
 
 struct ContentView: View {
     @State private var inputText = ""
-    @State private var cues: [CueItem] = []
+    @StateObject private var store = CueStore()
     @FocusState private var isInputFocused: Bool
     @State private var toastMessage: String?
     @State private var toastHideTask: Task<Void, Never>?
 
-    private let defaults = UserDefaults(suiteName: "group.com.takayashou.cue") ?? .standard
+    @State private var reminderService = ReminderService()
 
     func addCue() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -29,44 +16,21 @@ struct ContentView: View {
             return
         }
 
-        var saved = loadCues()
-        saved.append(CueItem(text: text))
-        if let data = try? JSONEncoder().encode(saved) {
-            defaults.set(data, forKey: "cues")
-        }
-        WidgetCenter.shared.reloadTimelines(ofKind: "CueWidget")
-        cues = saved
+        store.add(text)
         inputText = ""
         isInputFocused = true
     }
 
     func deleteCue(_ cue: CueItem) {
-        var saved = loadCues()
-        saved.removeAll { $0.id == cue.id }
-        if let data = try? JSONEncoder().encode(saved) {
-            defaults.set(data, forKey: "cues")
-        }
-        WidgetCenter.shared.reloadTimelines(ofKind: "CueWidget")
-        cues = saved
+        store.delete(cue)
         isInputFocused = true
     }
 
-    // Copies cues saved before the App Group existed. The old data is left in place.
-    func migrateFromStandardDefaults() {
-        guard defaults.data(forKey: "cues") == nil,
-              let oldData = UserDefaults.standard.data(forKey: "cues") else {
-            return
+    func addReminder(for cue: CueItem) {
+        reminderService.save(cue.text) {
+            deleteCue(cue)
+            showToast("Reminded")
         }
-        defaults.set(oldData, forKey: "cues")
-        WidgetCenter.shared.reloadTimelines(ofKind: "CueWidget")
-    }
-
-    func loadCues() -> [CueItem] {
-        guard let data = defaults.data(forKey: "cues"),
-              let cues = try? JSONDecoder().decode([CueItem].self, from: data) else {
-            return []
-        }
-        return cues
     }
 
     func copiedMessage(for text: String) -> String {
@@ -100,24 +64,32 @@ struct ContentView: View {
                     addCue()
                 }
 
-            ScrollView {
-                VStack(alignment: .leading) {
-                    ForEach(cues.reversed()) { cue in
-                        Text(cue.text)
-                            .onTapGesture {
-                                UIPasteboard.general.string = cue.text
-                                showToast(copiedMessage(for: cue.text))
+            List {
+                ForEach(store.cues.reversed()) { cue in
+                    Text(cue.text)
+                        .onTapGesture {
+                            UIPasteboard.general.string = cue.text
+                            showToast(copiedMessage(for: cue.text))
+                        }
+                        .contextMenu {
+                            Button("削除", role: .destructive) {
+                                deleteCue(cue)
                             }
-                            .contextMenu {
-                                Button("削除", role: .destructive) {
-                                    deleteCue(cue)
-                                }
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button {
+                                addReminder(for: cue)
+                            } label: {
+                                Text("リマインダー")
                             }
-                    }
+                        }
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .bottom) {
@@ -135,8 +107,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            migrateFromStandardDefaults()
-            cues = loadCues()
+            store.load()
 
             DispatchQueue.main.async {
                 isInputFocused = true

@@ -1,19 +1,9 @@
 import SwiftUI
-import EventKit
-
-struct CueItem: Identifiable, Codable {
-    let id : UUID
-    let text: String
-    
-    init(id: UUID = UUID(), text: String) {
-            self.id = id
-            self.text = text
-        }
-}
 
 struct ContentView: View {
     @State private var inputText = ""
-    @State private var cues: [CueItem] = []
+    @StateObject private var store = CueStore()
+    private let reminderService = ReminderService()
     @FocusState private var isInputFocused: Bool
     @State private var toastMessage: String?
     @State private var toastHideTask: Task<Void, Never>?
@@ -23,21 +13,9 @@ struct ContentView: View {
             return
         }
 
-        cues.append(CueItem(text: text))
+        store.add(text)
         inputText = ""
-        saveCues()
         isInputFocused = true
-    }
-    func saveCues() {
-        if let data = try? JSONEncoder().encode(cues) {
-            UserDefaults.standard.set(data, forKey: "cues")
-        }
-    }
-    func loadCues() {
-        if let data = UserDefaults.standard.data(forKey: "cues"),
-           let savedCues = try? JSONDecoder().decode([CueItem].self, from: data) {
-            cues = savedCues
-        }
     }
     func showToast(_ message: String) {
         toastHideTask?.cancel()
@@ -55,21 +33,8 @@ struct ContentView: View {
         }
     }
     func sendToReminders(_ text: String) async {
-        let store = EKEventStore()
-        do {
-            guard try await store.requestFullAccessToReminders(),
-                  let list = store.defaultCalendarForNewReminders() else {
-                showToast("Failed")
-                return
-            }
-            let reminder = EKReminder(eventStore: store)
-            reminder.title = text
-            reminder.calendar = list
-            try store.save(reminder, commit: true)
-            showToast("Added to Reminders")
-        } catch {
-            showToast("Failed")
-        }
+        let saved = await reminderService.save(text)
+        showToast(saved ? "Added to Reminders" : "Failed")
     }
 
     var body: some View {
@@ -83,7 +48,7 @@ struct ContentView: View {
             
             ScrollView {
                 VStack {
-                    ForEach(cues.reversed()) { cue in
+                    ForEach(store.cues.reversed()) { cue in
                         HStack{
                             Text(cue.text)
                                 .onTapGesture {
@@ -100,10 +65,7 @@ struct ContentView: View {
                                     }
                                 }
                             Button("×"){
-                                cues.removeAll { item in
-                                    item.id == cue.id
-                                }
-                                saveCues()
+                                store.delete(cue)
                             }
                         }
                     }
@@ -126,7 +88,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            loadCues()
+            store.load()
 
             DispatchQueue.main.async {
                 isInputFocused = true
