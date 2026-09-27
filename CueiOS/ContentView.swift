@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var reminderService = ReminderService()
     @State private var isSelecting = false
     @State private var selectedIDs: Set<UUID> = []
+    @State private var isSendingReminders = false
 
     var selectedCues: [CueItem] {
         store.cues.reversed().filter { selectedIDs.contains($0.id) }
@@ -79,6 +80,22 @@ struct ContentView: View {
         endSelecting()
     }
 
+    func sendSelectedToReminders() {
+        if isSendingReminders {
+            return
+        }
+        isSendingReminders = true
+        reminderService.saveAll(selectedCues.map(\.text)) { saved in
+            isSendingReminders = false
+            if saved {
+                showToast("Added to Reminders")
+                endSelecting()
+            } else {
+                showToast("Failed")
+            }
+        }
+    }
+
     var body: some View {
         VStack {
             HStack {
@@ -133,10 +150,16 @@ struct ContentView: View {
                             }
                         }
                         .swipeActions(edge: .trailing) {
-                            Button {
-                                addReminder(for: cue)
-                            } label: {
-                                Text("リマインダー")
+                            if !isSelecting || selectedIDs.contains(cue.id) {
+                                Button {
+                                    if isSelecting {
+                                        sendSelectedToReminders()
+                                    } else {
+                                        addReminder(for: cue)
+                                    }
+                                } label: {
+                                    Text("リマインダー")
+                                }
                             }
                         }
                         .listRowSeparator(.hidden)

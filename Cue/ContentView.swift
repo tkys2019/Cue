@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var toastHideTask: Task<Void, Never>?
     @State private var isSelecting = false
     @State private var selectedIDs: Set<UUID> = []
+    @State private var isSendingReminders = false
 
     var selectedCues: [CueItem] {
         store.cues.reversed().filter { selectedIDs.contains($0.id) }
@@ -60,6 +61,20 @@ struct ContentView: View {
             showToast("Copied")
         }
         endSelecting()
+    }
+    func sendSelectedToReminders() async {
+        if isSendingReminders {
+            return
+        }
+        isSendingReminders = true
+        let saved = await reminderService.saveAll(selectedCues.map(\.text))
+        isSendingReminders = false
+        if saved {
+            showToast("Added to Reminders")
+            endSelecting()
+        } else {
+            showToast("Failed")
+        }
     }
 
     var body: some View {
@@ -116,9 +131,15 @@ struct ContentView: View {
                                     }
                                 }
                                 .contextMenu {
-                                    Button("Send to Reminders") {
-                                        Task {
-                                            await sendToReminders(cue.text)
+                                    if !isSelecting || selectedIDs.contains(cue.id) {
+                                        Button("Send to Reminders") {
+                                            Task {
+                                                if isSelecting {
+                                                    await sendSelectedToReminders()
+                                                } else {
+                                                    await sendToReminders(cue.text)
+                                                }
+                                            }
                                         }
                                     }
                                 }
