@@ -13,6 +13,7 @@ struct CueItem: Identifiable, Codable {
 
 struct ContentView: View {
     @State private var inputText = ""
+    @State private var cues: [CueItem] = []
     @FocusState private var isInputFocused: Bool
 
     func addCue() {
@@ -22,12 +23,23 @@ struct ContentView: View {
             return
         }
 
-        var cues = loadCues()
-        cues.append(CueItem(text: text))
-        if let data = try? JSONEncoder().encode(cues) {
+        var saved = loadCues()
+        saved.append(CueItem(text: text))
+        if let data = try? JSONEncoder().encode(saved) {
             UserDefaults.standard.set(data, forKey: "cues")
         }
+        cues = saved
         inputText = ""
+        isInputFocused = true
+    }
+
+    func deleteCue(_ cue: CueItem) {
+        var saved = loadCues()
+        saved.removeAll { $0.id == cue.id }
+        if let data = try? JSONEncoder().encode(saved) {
+            UserDefaults.standard.set(data, forKey: "cues")
+        }
+        cues = saved
         isInputFocused = true
     }
 
@@ -40,19 +52,38 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TextField("", text: $inputText)
-            .focused($isInputFocused)
-            .submitLabel(.done)
-            .padding()
-            .onSubmit {
-                addCue()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .onAppear {
-                DispatchQueue.main.async {
-                    isInputFocused = true
+        VStack {
+            TextField("", text: $inputText)
+                .focused($isInputFocused)
+                .submitLabel(.done)
+                .padding()
+                .onSubmit {
+                    addCue()
                 }
+
+            ScrollView {
+                VStack(alignment: .leading) {
+                    ForEach(cues.reversed()) { cue in
+                        Text(cue.text)
+                            .contextMenu {
+                                Button("削除", role: .destructive) {
+                                    deleteCue(cue)
+                                }
+                            }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear {
+            cues = loadCues()
+
+            DispatchQueue.main.async {
+                isInputFocused = true
+            }
+        }
     }
 }
 
