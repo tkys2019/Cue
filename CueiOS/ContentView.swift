@@ -17,6 +17,8 @@ struct ContentView: View {
     @State private var inputText = ""
     @State private var cues: [CueItem] = []
     @FocusState private var isInputFocused: Bool
+    @State private var toastMessage: String?
+    @State private var toastHideTask: Task<Void, Never>?
 
     private let defaults = UserDefaults(suiteName: "group.com.takayashou.cue") ?? .standard
 
@@ -67,6 +69,22 @@ struct ContentView: View {
         return cues
     }
 
+    func showToast(_ message: String) {
+        toastHideTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.15)) {
+            toastMessage = message
+        }
+        toastHideTask = Task {
+            try? await Task.sleep(for: .seconds(0.9))
+            if Task.isCancelled {
+                return
+            }
+            withAnimation(.easeInOut(duration: 0.15)) {
+                toastMessage = nil
+            }
+        }
+    }
+
     var body: some View {
         VStack {
             TextField("", text: $inputText)
@@ -81,6 +99,10 @@ struct ContentView: View {
                 VStack(alignment: .leading) {
                     ForEach(cues.reversed()) { cue in
                         Text(cue.text)
+                            .onTapGesture {
+                                UIPasteboard.general.string = cue.text
+                                showToast("Copied")
+                            }
                             .contextMenu {
                                 Button("削除", role: .destructive) {
                                     deleteCue(cue)
@@ -93,6 +115,19 @@ struct ContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .overlay(alignment: .bottom) {
+            if let toastMessage {
+                Text(toastMessage)
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 6))
+                    .padding(.bottom, 12)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+            }
+        }
         .onAppear {
             migrateFromStandardDefaults()
             cues = loadCues()
