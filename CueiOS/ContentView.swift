@@ -8,6 +8,12 @@ struct ContentView: View {
     @State private var toastHideTask: Task<Void, Never>?
 
     @State private var reminderService = ReminderService()
+    @State private var isSelecting = false
+    @State private var selectedIDs: Set<UUID> = []
+
+    var selectedCues: [CueItem] {
+        store.cues.reversed().filter { selectedIDs.contains($0.id) }
+    }
 
     func addCue() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -54,8 +60,48 @@ struct ContentView: View {
         }
     }
 
+    func toggleSelection(_ cue: CueItem) {
+        if selectedIDs.contains(cue.id) {
+            selectedIDs.remove(cue.id)
+        } else {
+            selectedIDs.insert(cue.id)
+        }
+    }
+
+    func endSelecting() {
+        selectedIDs = []
+        isSelecting = false
+    }
+
+    func copySelected() {
+        UIPasteboard.general.string = selectedCues.map(\.text).joined(separator: "\n")
+        showToast("Copied")
+        endSelecting()
+    }
+
     var body: some View {
         VStack {
+            HStack {
+                Button(isSelecting ? "Done" : "Select") {
+                    if isSelecting {
+                        endSelecting()
+                    } else {
+                        isSelecting = true
+                    }
+                }
+                Spacer()
+                if isSelecting {
+                    Button("Select All") {
+                        selectedIDs = Set(store.cues.map(\.id))
+                    }
+                    Button("Copy") {
+                        copySelected()
+                    }
+                    .disabled(selectedCues.isEmpty)
+                }
+            }
+            .padding(.horizontal)
+
             TextField("", text: $inputText)
                 .focused($isInputFocused)
                 .submitLabel(.done)
@@ -66,8 +112,18 @@ struct ContentView: View {
 
             List {
                 ForEach(store.cues.reversed()) { cue in
-                    Text(cue.text)
+                    HStack {
+                        if isSelecting {
+                            Image(systemName: selectedIDs.contains(cue.id) ? "checkmark.circle.fill" : "circle")
+                        }
+                        Text(cue.text)
+                    }
+                        .contentShape(Rectangle())
                         .onTapGesture {
+                            if isSelecting {
+                                toggleSelection(cue)
+                                return
+                            }
                             UIPasteboard.general.string = cue.text
                             showToast(copiedMessage(for: cue.text))
                         }
