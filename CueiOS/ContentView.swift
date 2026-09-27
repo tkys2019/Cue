@@ -69,6 +69,11 @@ struct ContentView: View {
         return cues
     }
 
+    func copiedMessage(for text: String) -> String {
+        let shortText = text.count > 14 ? "\(text.prefix(14))…" : text
+        return "\(shortText) Copied"
+    }
+
     func showToast(_ message: String) {
         toastHideTask?.cancel()
         withAnimation(.easeInOut(duration: 0.15)) {
@@ -101,7 +106,7 @@ struct ContentView: View {
                         Text(cue.text)
                             .onTapGesture {
                                 UIPasteboard.general.string = cue.text
-                                showToast("Copied")
+                                showToast(copiedMessage(for: cue.text))
                             }
                             .contextMenu {
                                 Button("削除", role: .destructive) {
@@ -118,6 +123,7 @@ struct ContentView: View {
         .overlay(alignment: .bottom) {
             if let toastMessage {
                 Text(toastMessage)
+                    .lineLimit(1)
                     .font(.caption)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
