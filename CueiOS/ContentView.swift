@@ -85,9 +85,13 @@ struct ContentView: View {
             return
         }
         isSendingReminders = true
-        reminderService.saveAll(selectedCues.map(\.text)) { saved in
+        let cues = selectedCues
+        reminderService.saveAll(cues.map(\.text)) { saved in
             isSendingReminders = false
             if saved {
+                for cue in cues {
+                    store.delete(cue)
+                }
                 showToast("Added to Reminders")
                 endSelecting()
             } else {

@@ -39,8 +39,11 @@ struct ContentView: View {
             }
         }
     }
-    func sendToReminders(_ text: String) async {
-        let saved = await reminderService.save(text)
+    func sendToReminders(_ cue: CueItem) async {
+        let saved = await reminderService.save(cue.text)
+        if saved {
+            store.delete(cue)
+        }
         showToast(saved ? "Added to Reminders" : "Failed")
     }
     func toggleSelection(_ cue: CueItem) {
@@ -67,9 +70,13 @@ struct ContentView: View {
             return
         }
         isSendingReminders = true
-        let saved = await reminderService.saveAll(selectedCues.map(\.text))
+        let cues = selectedCues
+        let saved = await reminderService.saveAll(cues.map(\.text))
         isSendingReminders = false
         if saved {
+            for cue in cues {
+                store.delete(cue)
+            }
             showToast("Added to Reminders")
             endSelecting()
         } else {
@@ -137,7 +144,7 @@ struct ContentView: View {
                                                 if isSelecting {
                                                     await sendSelectedToReminders()
                                                 } else {
-                                                    await sendToReminders(cue.text)
+                                                    await sendToReminders(cue)
                                                 }
                                             }
                                         }
