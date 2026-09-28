@@ -34,9 +34,11 @@ struct ContentView: View {
     }
 
     func addReminder(for cue: CueItem) {
-        reminderService.save(cue.text) {
-            deleteCue(cue)
-            showToast("Reminded")
+        reminderService.save(cue.text) { saved in
+            if saved {
+                deleteCue(cue)
+            }
+            showToast(saved ? "Added to Reminders" : "Failed")
         }
     }
 

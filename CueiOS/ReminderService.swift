@@ -4,18 +4,21 @@ import EventKit
 final class ReminderService {
     private let eventStore = EKEventStore()
 
-    // Denial and save failures remain silent. Only a committed save calls back.
-    func save(_ text: String, onSaved: @escaping @MainActor () -> Void) {
+    func save(_ text: String, completion: @escaping @MainActor (Bool) -> Void) {
         eventStore.requestFullAccessToReminders { [self] granted, _ in
-            guard granted else { return }
             DispatchQueue.main.async { [self] in
+                guard granted else {
+                    completion(false)
+                    return
+                }
                 let reminder = EKReminder(eventStore: eventStore)
                 reminder.title = text
                 reminder.calendar = eventStore.defaultCalendarForNewReminders()
                 do {
                     try eventStore.save(reminder, commit: true)
-                    onSaved()
+                    completion(true)
                 } catch {
+                    completion(false)
                 }
             }
         }
