@@ -1,9 +1,11 @@
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 final class MenuBarController: NSObject {
     private var statusItem: NSStatusItem
     private let panel: NSPanel
+    private var defaultsObserver: NSObjectProtocol?
     
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -71,13 +73,140 @@ final class MenuBarController: NSObject {
 
             button.target = self
             button.action = #selector(statusItemClicked)
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         
+        applyBackground()
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyBackground()
+        }
+
         startCommandMonitor()
     }
     
     @objc private func statusItemClicked() {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showStatusMenu()
+            return
+        }
         toggleCue()
+    }
+
+    private func showStatusMenu() {
+        let defaults = UserDefaults.standard
+        let menu = NSMenu()
+
+        menu.addItem(.sectionHeader(title: "Appearance"))
+        let timestampsItem = menuItem("Show timestamps", action: #selector(toggleTimestamps))
+        timestampsItem.state = defaults.bool(forKey: "showTimestamps") ? .on : .off
+        menu.addItem(timestampsItem)
+
+        let background = defaults.string(forKey: "background")
+            .flatMap(CueBackground.init(rawValue:)) ?? .system
+        let backgroundMenu = NSMenu()
+        for option in CueBackground.allCases {
+            let item = menuItem(option.title, action: #selector(selectBackground(_:)))
+            item.representedObject = option.rawValue
+            item.state = option == background ? .on : .off
+            backgroundMenu.addItem(item)
+        }
+        let backgroundItem = NSMenuItem(title: "Background", action: nil, keyEquivalent: "")
+        backgroundItem.submenu = backgroundMenu
+        menu.addItem(backgroundItem)
+
+        let transparency = defaults.object(forKey: "transparency") as? Double ?? 0.9
+        let transparencyMenu = NSMenu()
+        for percent in stride(from: 60, through: 100, by: 5) {
+            let item = menuItem("\(percent)%", action: #selector(selectTransparency(_:)))
+            item.tag = percent
+            item.state = Int((transparency * 100).rounded()) == percent ? .on : .off
+            transparencyMenu.addItem(item)
+        }
+        let transparencyItem = NSMenuItem(title: "Transparency", action: nil, keyEquivalent: "")
+        transparencyItem.submenu = transparencyMenu
+        menu.addItem(transparencyItem)
+
+        menu.addItem(.separator())
+        menu.addItem(.sectionHeader(title: "Quick Launch"))
+        let loginItem = menuItem("Launch at Login", action: #selector(toggleLaunchAtLogin))
+        // Reflect the actual login item state, not only the saved setting.
+        loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        menu.addItem(loginItem)
+        // No action: shown as a disabled, display-only item.
+        menu.addItem(NSMenuItem(title: "Keyboard Shortcut: ⌘⌘", action: nil, keyEquivalent: ""))
+
+        menu.addItem(.separator())
+        menu.addItem(.sectionHeader(title: "About"))
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        menu.addItem(NSMenuItem(title: "Version \(version)", action: nil, keyEquivalent: ""))
+        menu.addItem(menuItem("GitHub", action: #selector(openGitHub)))
+
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(
+            title: "Quit Cue",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: ""
+        ))
+
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    private func menuItem(_ title: String, action: Selector) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        item.target = self
+        return item
+    }
+
+    @objc private func toggleTimestamps() {
+        let defaults = UserDefaults.standard
+        defaults.set(!defaults.bool(forKey: "showTimestamps"), forKey: "showTimestamps")
+    }
+
+    @objc private func selectBackground(_ sender: NSMenuItem) {
+        UserDefaults.standard.set(sender.representedObject as? String, forKey: "background")
+    }
+
+    @objc private func selectTransparency(_ sender: NSMenuItem) {
+        UserDefaults.standard.set(Double(sender.tag) / 100, forKey: "transparency")
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled {
+                try service.unregister()
+            } else {
+                try service.register()
+            }
+        } catch {
+            print("Cue: failed to update login item: \(error)")
+        }
+        // Save the resulting state, so a failed attempt is not stored as success
+        // and a successful OFF is not re-registered at next launch.
+        UserDefaults.standard.set(service.status != .notRegistered, forKey: "launchAtLogin")
+    }
+
+    @objc private func openGitHub() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/tkys2019/Cue")!)
+    }
+
+    private func applyBackground() {
+        let background = UserDefaults.standard.string(forKey: "background")
+            .flatMap(CueBackground.init(rawValue:)) ?? .system
+        let appearance: NSAppearance? = switch background {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+        if panel.appearance?.name != appearance?.name {
+            panel.appearance = appearance
+        }
     }
     
     private func toggleCue() {
@@ -161,6 +290,10 @@ final class MenuBarController: NSObject {
     }
     
     deinit {
+        if let defaultsObserver {
+            NotificationCenter.default.removeObserver(defaultsObserver)
+        }
+
         if let globalMonitor {
             NSEvent.removeMonitor(globalMonitor)
         }

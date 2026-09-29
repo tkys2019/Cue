@@ -12,8 +12,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerLoginItemIfNeeded() {
+        // Defaults to ON, as before. Once turned OFF from the menu, never re-register.
+        let enabled = UserDefaults.standard.object(forKey: "launchAtLogin") as? Bool ?? true
         let service = SMAppService.mainApp
-        guard service.status == .notRegistered else { return }
+        guard enabled, service.status == .notRegistered else { return }
         do {
             try service.register()
         } catch {

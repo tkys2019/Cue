@@ -11,6 +11,17 @@ struct ContentView: View {
     @State private var isSelecting = false
     @State private var selectedIDs: Set<UUID> = []
     @State private var isSendingReminders = false
+    @State private var isShowingSettings = false
+    @AppStorage("showTimestamps") private var showTimestamps = false
+    @AppStorage("background") private var background = CueBackground.system
+
+    var colorScheme: ColorScheme? {
+        switch background {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
 
     var selectedCues: [CueItem] {
         store.cues.reversed().filter { selectedIDs.contains($0.id) }
@@ -82,6 +93,38 @@ struct ContentView: View {
         endSelecting()
     }
 
+    // Opens the system share sheet (e.g. to Notes). Cues are deleted only when sharing completes.
+    func share(_ cues: [CueItem]) {
+        guard let root = UIApplication.shared.connectedScenes
+            .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
+            .first?.rootViewController else { return }
+        var presenter = root
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+
+        let controller = UIActivityViewController(
+            activityItems: [cues.map(\.text).joined(separator: "\n")],
+            applicationActivities: nil
+        )
+        controller.popoverPresentationController?.sourceView = presenter.view
+        controller.popoverPresentationController?.sourceRect = CGRect(
+            x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 0, height: 0
+        )
+        controller.completionWithItemsHandler = { _, completed, _, _ in
+            if completed {
+                for cue in cues {
+                    store.delete(cue)
+                }
+                if isSelecting {
+                    endSelecting()
+                }
+            }
+            isInputFocused = true
+        }
+        presenter.present(controller, animated: true)
+    }
+
     func sendSelectedToReminders() {
         if isSendingReminders {
             return
@@ -122,6 +165,12 @@ struct ContentView: View {
                     }
                     .disabled(selectedCues.isEmpty)
                 }
+                Button {
+                    isShowingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("Settings")
             }
             .padding(.horizontal)
 
@@ -139,7 +188,16 @@ struct ContentView: View {
                         if isSelecting {
                             Image(systemName: selectedIDs.contains(cue.id) ? "checkmark.circle.fill" : "circle")
                         }
-                        Text(cue.text)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(cue.text)
+                            if showTimestamps, let createdAt = cue.createdAt {
+                                TimelineView(.everyMinute) { context in
+                                    Text(CueItem.timestampText(for: createdAt, now: context.date))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                     }
                         .contentShape(Rectangle())
                         .onTapGesture {
@@ -156,6 +214,15 @@ struct ContentView: View {
                             }
                         }
                         .swipeActions(edge: .trailing) {
+                            if !isSelecting || selectedIDs.contains(cue.id) {
+                                Button {
+                                    share(isSelecting ? selectedCues : [cue])
+                                } label: {
+                                    Text("共有")
+                                }
+                            }
+                        }
+                        .swipeActions(edge: .leading) {
                             if !isSelecting || selectedIDs.contains(cue.id) {
                                 Button {
                                     if isSelecting {
@@ -190,6 +257,12 @@ struct ContentView: View {
                     .transition(.opacity)
                     .allowsHitTesting(false)
             }
+        }
+        .preferredColorScheme(colorScheme)
+        .sheet(isPresented: $isShowingSettings, onDismiss: {
+            isInputFocused = true
+        }) {
+            SettingsView()
         }
         .onAppear {
             store.load()

@@ -10,6 +10,8 @@ struct ContentView: View {
     @State private var isSelecting = false
     @State private var selectedIDs: Set<UUID> = []
     @State private var isSendingReminders = false
+    @AppStorage("showTimestamps") private var showTimestamps = false
+    @AppStorage("transparency") private var transparency = 0.9
 
     var selectedCues: [CueItem] {
         store.cues.reversed().filter { selectedIDs.contains($0.id) }
@@ -124,7 +126,16 @@ struct ContentView: View {
                                 if isSelecting {
                                     Image(systemName: selectedIDs.contains(cue.id) ? "checkmark.circle.fill" : "circle")
                                 }
-                                Text(cue.text)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(cue.text)
+                                    if showTimestamps, let createdAt = cue.createdAt {
+                                        TimelineView(.everyMinute) { context in
+                                            Text(CueItem.timestampText(for: createdAt, now: context.date))
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
                             }
                                 .contentShape(Rectangle())
                                 .onTapGesture {
@@ -160,7 +171,7 @@ struct ContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.thinMaterial)
+        .background(.thinMaterial.opacity(transparency))
         .overlay(alignment: .bottom) {
             if let toastMessage {
                 Text(toastMessage)
