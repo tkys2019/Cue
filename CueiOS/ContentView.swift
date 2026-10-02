@@ -4,6 +4,9 @@ struct ContentView: View {
     @State private var inputText = ""
     @StateObject private var store = CueStore()
     @FocusState private var isInputFocused: Bool
+    @FocusState private var isEditFocused: Bool
+    @State private var editingID: UUID?
+    @State private var editingText = ""
     @State private var toastMessage: String?
     @State private var toastHideTask: Task<Void, Never>?
 
@@ -42,6 +45,40 @@ struct ContentView: View {
     func deleteCue(_ cue: CueItem) {
         store.delete(cue)
         isInputFocused = true
+    }
+
+    // Editing starts and ends without any animation.
+    func startEditing(_ cue: CueItem) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            editingText = cue.text
+            editingID = cue.id
+        }
+        // A clear click when editing starts.
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    }
+
+    func saveEdit(_ cue: CueItem) {
+        let text = editingText.trimmingCharacters(in: .whitespacesAndNewlines)
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            if !text.isEmpty {
+                store.update(cue, text: text)
+            }
+            editingID = nil
+        }
+        isInputFocused = true
+    }
+
+    func completeCue(_ cue: CueItem) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            deleteCue(cue)
+        }
+        showToast("Clear")
     }
 
     func addReminder(for cue: CueItem) {
@@ -185,34 +222,54 @@ struct ContentView: View {
             List {
                 ForEach(store.cues.reversed()) { cue in
                     HStack {
-                        if isSelecting {
-                            Image(systemName: selectedIDs.contains(cue.id) ? "checkmark.circle.fill" : "circle")
-                        }
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(cue.text)
-                            if showTimestamps, let createdAt = cue.createdAt {
-                                TimelineView(.everyMinute) { context in
-                                    Text(CueItem.timestampText(for: createdAt, now: context.date))
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                        if editingID == cue.id {
+                            TextField("", text: $editingText)
+                                .focused($isEditFocused)
+                                .submitLabel(.done)
+                                .onSubmit {
+                                    saveEdit(cue)
+                                }
+                                .onAppear {
+                                    isEditFocused = true
+                                }
+                        } else {
+                            HStack {
+                                if isSelecting {
+                                    Image(systemName: selectedIDs.contains(cue.id) ? "checkmark.circle.fill" : "circle")
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(cue.text)
+                                    if showTimestamps, let createdAt = cue.createdAt {
+                                        TimelineView(.everyMinute) { context in
+                                            Text(CueItem.timestampText(for: createdAt, now: context.date))
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
                                 }
                             }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if isSelecting {
+                                        toggleSelection(cue)
+                                        return
+                                    }
+                                    UIPasteboard.general.string = cue.text
+                                    showToast(copiedMessage(for: cue.text))
+                                }
+                                .onLongPressGesture {
+                                    if !isSelecting {
+                                        startEditing(cue)
+                                    }
+                                }
                         }
+                        Spacer()
+                        // Done: take the Cue out of the queue.
+                        Button("✓") {
+                            completeCue(cue)
+                        }
+                        .buttonStyle(.borderless)
                     }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if isSelecting {
-                                toggleSelection(cue)
-                                return
-                            }
-                            UIPasteboard.general.string = cue.text
-                            showToast(copiedMessage(for: cue.text))
-                        }
-                        .contextMenu {
-                            Button("削除", role: .destructive) {
-                                deleteCue(cue)
-                            }
-                        }
                         .swipeActions(edge: .trailing) {
                             if !isSelecting || selectedIDs.contains(cue.id) {
                                 Button {

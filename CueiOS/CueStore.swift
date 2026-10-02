@@ -40,6 +40,13 @@ final class CueStore: ObservableObject {
         save(saved)
     }
 
+    func update(_ cue: CueItem, text: String) {
+        var saved = readSavedCues()
+        guard let index = saved.firstIndex(where: { $0.id == cue.id }) else { return }
+        saved[index] = CueItem(id: cue.id, text: text, createdAt: saved[index].createdAt)
+        save(saved)
+    }
+
     private func save(_ saved: [CueItem]) {
         if let data = try? JSONEncoder().encode(saved) {
             defaults.set(data, forKey: "cues")
