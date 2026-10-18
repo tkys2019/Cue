@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		000000000000000400000001 /* CueWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 000000000000000000000131 /* CueWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		000000000000000800000001 /* CueWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 000000000000000000000122 /* CueWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		000000000000000800000011 /* CueWatchWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 000000000000000000000132 /* CueWatchWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -18,34 +20,61 @@
 			remoteGlobalIDString = 000000000000000500000000;
 			remoteInfo = CueWidget;
 		};
+		000000000000000800000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000600000000;
+			remoteInfo = CueWatch;
+		};
+		000000000000000800000012 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000700000000;
+			remoteInfo = CueWatchWidget;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		000000000000000400000003 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
 			dstPath = "";
-			dstSubfolderSpec = 13;
+			dstSubfolder = PlugIns;
 			files = (
 				000000000000000400000001 /* CueWidget.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000800000003 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolder = Product;
+			files = (
+				000000000000000800000001 /* CueWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+		};
+		000000000000000800000013 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				000000000000000800000011 /* CueWatchWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* Cue.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cue.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		000000000000000000000131 /* CueWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CueWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000121 /* CueiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CueiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000122 /* CueWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CueWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000131 /* CueWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CueWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000132 /* CueWatchWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CueWatchWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		000000000000000000000014 /* Shared */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Shared;
-			sourceTree = "<group>";
-		};
 		000000000000000000000010 /* Cue */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Cue;
@@ -59,6 +88,21 @@
 		000000000000000000000013 /* CueWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CueWidget;
+			sourceTree = "<group>";
+		};
+		000000000000000000000014 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		000000000000000000000015 /* CueWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CueWatch;
+			sourceTree = "<group>";
+		};
+		000000000000000000000016 /* CueWatchWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CueWatchWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -79,6 +123,16 @@
 			files = (
 			);
 		};
+		000000000000000630000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		000000000000000730000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -89,6 +143,8 @@
 				000000000000000000000010 /* Cue */,
 				000000000000000000000011 /* CueiOS */,
 				000000000000000000000013 /* CueWidget */,
+				000000000000000000000015 /* CueWatch */,
+				000000000000000000000016 /* CueWatchWidget */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +155,8 @@
 				000000000000000000000120 /* Cue.app */,
 				000000000000000000000121 /* CueiOS.app */,
 				000000000000000000000131 /* CueWidget.appex */,
+				000000000000000000000122 /* CueWatch.app */,
+				000000000000000000000132 /* CueWatchWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,8 +175,8 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				000000000000000000000014 /* Shared */,
 				000000000000000000000010 /* Cue */,
+				000000000000000000000014 /* Shared */,
 			);
 			name = Cue;
 			productName = MyApp;
@@ -133,15 +191,17 @@
 				000000000000000230000000 /* Frameworks */,
 				000000000000000240000000 /* Resources */,
 				000000000000000400000003 /* Embed Foundation Extensions */,
+				000000000000000800000003 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				000000000000000400000004 /* PBXTargetDependency */,
+				000000000000000800000004 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				000000000000000000000014 /* Shared */,
 				000000000000000000000011 /* CueiOS */,
+				000000000000000000000014 /* Shared */,
 			);
 			name = CueiOS;
 			productName = CueiOS;
@@ -158,26 +218,58 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			fileSystemSynchronizedGroups = (
-				000000000000000000000014 /* Shared */,
 				000000000000000000000013 /* CueWidget */,
+				000000000000000000000014 /* Shared */,
 			);
 			name = CueWidget;
 			productName = CueWidget;
 			productReference = 000000000000000000000131 /* CueWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-/* End PBXNativeTarget section */
-
-/* Begin PBXTargetDependency section */
-		000000000000000400000004 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 000000000000000500000000 /* CueWidget */;
-			targetProxy = 000000000000000400000002 /* PBXContainerItemProxy */;
+		000000000000000600000000 /* CueWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000610000000 /* Build configuration list for PBXNativeTarget "CueWatch" */;
+			buildPhases = (
+				000000000000000620000000 /* Sources */,
+				000000000000000630000000 /* Frameworks */,
+				000000000000000640000000 /* Resources */,
+				000000000000000800000013 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				000000000000000800000014 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				000000000000000000000014 /* Shared */,
+				000000000000000000000015 /* CueWatch */,
+			);
+			name = CueWatch;
+			productName = CueWatch;
+			productReference = 000000000000000000000122 /* CueWatch.app */;
+			productType = "com.apple.product-type.application";
 		};
-/* End PBXTargetDependency section */
+		000000000000000700000000 /* CueWatchWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000710000000 /* Build configuration list for PBXNativeTarget "CueWatchWidget" */;
+			buildPhases = (
+				000000000000000720000000 /* Sources */,
+				000000000000000730000000 /* Frameworks */,
+				000000000000000740000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				000000000000000000000014 /* Shared */,
+				000000000000000000000016 /* CueWatchWidget */,
+			);
+			name = CueWatchWidget;
+			productName = CueWatchWidget;
+			productReference = 000000000000000000000132 /* CueWatchWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		000000000000000000000000 /* Project object */ = {
@@ -195,6 +287,12 @@
 					};
 					000000000000000500000000 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					000000000000000600000000 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					000000000000000700000000 = {
+						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
@@ -215,6 +313,8 @@
 				000000000000000100000000 /* Cue */,
 				000000000000000200000000 /* CueiOS */,
 				000000000000000500000000 /* CueWidget */,
+				000000000000000600000000 /* CueWatch */,
+				000000000000000700000000 /* CueWatchWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -231,6 +331,16 @@
 			);
 		};
 		000000000000000540000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		000000000000000640000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		000000000000000740000000 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -253,7 +363,35 @@
 			files = (
 			);
 		};
+		000000000000000620000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		000000000000000720000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		000000000000000400000004 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000500000000 /* CueWidget */;
+			targetProxy = 000000000000000400000002 /* PBXContainerItemProxy */;
+		};
+		000000000000000800000004 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000600000000 /* CueWatch */;
+			targetProxy = 000000000000000800000002 /* PBXContainerItemProxy */;
+		};
+		000000000000000800000014 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000700000000 /* CueWatchWidget */;
+			targetProxy = 000000000000000800000012 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000011000000 /* Debug configuration for PBXProject "Cue" */ = {
@@ -630,6 +768,140 @@
 			};
 			name = Release;
 		};
+		000000000000000611000000 /* Debug configuration for PBXNativeTarget "CueWatch" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = Config/CueWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = RJKXAA6R44;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/CueWatchInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Cue;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.takayashou.cue.ios;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.takayashou.cue.ios.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		000000000000000612000000 /* Release configuration for PBXNativeTarget "CueWatch" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = Config/CueWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = RJKXAA6R44;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/CueWatchInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Cue;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.takayashou.cue.ios;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.takayashou.cue.ios.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		000000000000000711000000 /* Debug configuration for PBXNativeTarget "CueWatchWidget" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/CueWatchWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = RJKXAA6R44;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/CueWidgetInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Cue;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.takayashou.cue.ios.watchkitapp.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		000000000000000712000000 /* Release configuration for PBXNativeTarget "CueWatchWidget" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/CueWatchWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = RJKXAA6R44;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/CueWidgetInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Cue;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.takayashou.cue.ios.watchkitapp.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -662,6 +934,22 @@
 			buildConfigurations = (
 				000000000000000511000000 /* Debug configuration for PBXNativeTarget "CueWidget" */,
 				000000000000000512000000 /* Release configuration for PBXNativeTarget "CueWidget" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		000000000000000610000000 /* Build configuration list for PBXNativeTarget "CueWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000611000000 /* Debug configuration for PBXNativeTarget "CueWatch" */,
+				000000000000000612000000 /* Release configuration for PBXNativeTarget "CueWatch" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		000000000000000710000000 /* Build configuration list for PBXNativeTarget "CueWatchWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000711000000 /* Debug configuration for PBXNativeTarget "CueWatchWidget" */,
+				000000000000000712000000 /* Release configuration for PBXNativeTarget "CueWatchWidget" */,
 			);
 			defaultConfigurationName = Release;
 		};

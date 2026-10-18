@@ -63,6 +63,19 @@ struct CueStoreRegression {
             precondition(reloads == beforeLoad)
         }
         precondition(legacy.data(forKey: "cues") == fixture)
+        // Watch Cues keep their ID, are added once, and are placed by creation time.
+        defaults.set(Data("[]".utf8), forKey: "cues")
+        store.load()
+        store.add("phone")
+        let watchID = UUID()
+        let watchCue = CueItem(id: watchID, text: "watch", createdAt: Date(timeIntervalSinceNow: -60))
+        store.receive(watchCue)
+        store.receive(watchCue)
+        precondition(store.cues.count == 2 && store.cues.filter { $0.id == watchID }.count == 1)
+        precondition(store.cues.map(\.text) == ["watch", "phone"])
+        let reloaded = CueStore(defaults: defaults, legacyDefaults: legacy, reloadWidget: {})
+        reloaded.load()
+        precondition(reloaded.cues[0].id == watchID)
         #else
         // macOS mutations use in-memory state; failed loads keep that state.
         defaults.set(fixture, forKey: "cues")

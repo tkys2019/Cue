@@ -34,6 +34,17 @@ final class CueStore: ObservableObject {
         save(saved)
     }
 
+    // Adds a Cue captured on Apple Watch, keeping its ID. A Cue already saved is ignored.
+    func receive(_ cue: CueItem) {
+        var saved = readSavedCues()
+        guard !saved.contains(where: { $0.id == cue.id }) else { return }
+        // Place it by creation time, so a late delivery is not shown as the newest.
+        let date = cue.createdAt ?? .distantPast
+        let index = saved.firstIndex { ($0.createdAt ?? .distantPast) > date } ?? saved.endIndex
+        saved.insert(cue, at: index)
+        save(saved)
+    }
+
     func delete(_ cue: CueItem) {
         var saved = readSavedCues()
         saved.removeAll { $0.id == cue.id }

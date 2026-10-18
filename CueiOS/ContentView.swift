@@ -323,6 +323,7 @@ struct ContentView: View {
         }
         .onAppear {
             store.load()
+            WatchConnector.shared.attach(store)
 
             DispatchQueue.main.async {
                 isInputFocused = true

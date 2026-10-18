@@ -15,6 +15,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 struct CueiOSApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    init() {
+        WatchConnector.shared.activate()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
