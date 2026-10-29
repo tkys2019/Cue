@@ -13,6 +13,11 @@ struct ContentView: View {
     @AppStorage("showTimestamps") private var showTimestamps = false
     @AppStorage("transparency") private var transparency = 0.9
     @AppStorage("background") private var background: CueBackground = .system
+    @AppStorage("hoverStyle") private var hoverStyle: CueHoverStyle = .glow
+    // "" = default color. Otherwise "#RRGGBB" picked in the system color panel.
+    @AppStorage("hoverColor") private var hoverColorHex = ""
+    @State private var hoveredID: UUID?
+    @State private var hoveredDeleteID: UUID?
 
     var selectedCues: [CueItem] {
         store.cues.reversed().filter { selectedIDs.contains($0.id) }
@@ -87,6 +92,14 @@ struct ContentView: View {
         }
     }
 
+    // Item hover color: the picked color, or the defaults (accent glow, neutral highlight).
+    var hoverTint: Color {
+        if let custom = HoverColorPanel.color(from: hoverColorHex) {
+            return Color(nsColor: custom)
+        }
+        return hoverStyle == .glow ? .accentColor : .primary
+    }
+
     var settingsMenu: some View {
         Menu {
             Section("Appearance") {
@@ -106,6 +119,19 @@ struct ContentView: View {
                     }
                 }
                 .pickerStyle(.menu)
+                Picker("Hover", selection: $hoverStyle) {
+                    ForEach(CueHoverStyle.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                Button("Hover Color…") {
+                    HoverColorPanel.shared.show()
+                }
+                Button("Reset Hover Color") {
+                    hoverColorHex = ""
+                }
+                .disabled(hoverColorHex.isEmpty)
             }
             Section("Quick Launch") {
                 Text("Keyboard Shortcut: ⌘⌘")
@@ -181,6 +207,7 @@ struct ContentView: View {
                                     }
                                 }
                             }
+                                .cueHover(cue.id, hovered: $hoveredID, style: hoverStyle, color: hoverTint)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     if isSelecting {
@@ -208,6 +235,7 @@ struct ContentView: View {
                             Button("×"){
                                 store.delete(cue)
                             }
+                            .cueHover(cue.id, hovered: $hoveredDeleteID, style: hoverStyle, color: .red)
                         }
                     }
                 }
@@ -236,6 +264,80 @@ struct ContentView: View {
                 isInputFocused = true
             }
         }
+    }
+}
+
+// One hover look for every Cue control, following the Hover setting.
+private struct CueHoverEffect: ViewModifier {
+    let isActive: Bool
+    let style: CueHoverStyle
+    let color: Color
+
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: isActive && style == .glow ? color.opacity(0.7) : .clear, radius: 4)
+            .shadow(color: isActive && style == .glow ? color.opacity(0.4) : .clear, radius: 8)
+            .background {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isActive && style == .highlight ? color.opacity(0.1) : .clear)
+                    .padding(-4)
+            }
+            .animation(.easeInOut(duration: 0.12), value: isActive)
+    }
+}
+
+private extension View {
+    func cueHover(_ id: UUID, hovered: Binding<UUID?>, style: CueHoverStyle, color: Color) -> some View {
+        modifier(CueHoverEffect(isActive: hovered.wrappedValue == id, style: style, color: color))
+            .onHover { isHovering in
+                if isHovering {
+                    hovered.wrappedValue = id
+                } else if hovered.wrappedValue == id {
+                    hovered.wrappedValue = nil
+                }
+            }
+    }
+}
+
+// Picks the hover color with the standard macOS color panel and stores it as "#RRGGBB".
+final class HoverColorPanel: NSObject {
+    static let shared = HoverColorPanel()
+    private static let key = "hoverColor"
+
+    static func color(from hex: String) -> NSColor? {
+        guard hex.count == 7, hex.hasPrefix("#"),
+              let value = UInt32(hex.dropFirst(), radix: 16) else { return nil }
+        return NSColor(
+            srgbRed: CGFloat((value >> 16) & 0xFF) / 255,
+            green: CGFloat((value >> 8) & 0xFF) / 255,
+            blue: CGFloat(value & 0xFF) / 255,
+            alpha: 1
+        )
+    }
+
+    func show() {
+        let colorPanel = NSColorPanel.shared
+        colorPanel.showsAlpha = false
+        colorPanel.isContinuous = true
+        colorPanel.color = Self.color(from: UserDefaults.standard.string(forKey: Self.key) ?? "")
+            ?? .controlAccentColor
+        colorPanel.setTarget(self)
+        colorPanel.setAction(#selector(colorChanged(_:)))
+        // The Cue panel sits at screen saver level; keep the color panel in front of it.
+        colorPanel.level = .screenSaver
+        NSApp.activate()
+        colorPanel.orderFrontRegardless()
+    }
+
+    @objc private func colorChanged(_ sender: NSColorPanel) {
+        guard let rgb = sender.color.usingColorSpace(.sRGB) else { return }
+        let hex = String(
+            format: "#%02X%02X%02X",
+            Int((rgb.redComponent * 255).rounded()),
+            Int((rgb.greenComponent * 255).rounded()),
+            Int((rgb.blueComponent * 255).rounded())
+        )
+        UserDefaults.standard.set(hex, forKey: Self.key)
     }
 }
 
