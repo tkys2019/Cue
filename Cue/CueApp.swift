@@ -8,7 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         panelController = CuePanelController()
-        registerLoginItemIfNeeded()
+        askLaunchAtLoginIfNeeded()
     }
 
     // Opening Cue again (Spotlight, Finder, etc.) shows the panel,
@@ -18,12 +18,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    private func registerLoginItemIfNeeded() {
-        // Defaults to ON. Turning it OFF is left to System Settings > Login Items.
-        // A previously saved OFF (from the old menu bar menu) is still respected.
-        let enabled = UserDefaults.standard.object(forKey: "launchAtLogin") as? Bool ?? true
+    // Asks once on first launch. Turning it OFF later is left to System Settings > Login Items.
+    // A saved answer (including OFF from the old menu bar menu) is respected.
+    private func askLaunchAtLoginIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: "launchAtLogin") == nil else { return }
         let service = SMAppService.mainApp
-        guard enabled, service.status == .notRegistered else { return }
+        if service.status == .enabled {
+            defaults.set(true, forKey: "launchAtLogin")
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "Launch Cue at login?"
+        alert.informativeText = "Cue runs in the background and opens with ⌘⌘. You can change this later in System Settings > General > Login Items."
+        alert.addButton(withTitle: "Launch at Login")
+        alert.addButton(withTitle: "Not Now")
+        NSApp.activate()
+        let enable = alert.runModal() == .alertFirstButtonReturn
+        defaults.set(enable, forKey: "launchAtLogin")
+        guard enable else { return }
         do {
             try service.register()
         } catch {
