@@ -22,13 +22,21 @@ Enter
 2. Unzip it and move `Cue.app` to your Applications folder.
 3. Open Cue.
 
-Cue is free and is **not signed with an Apple Developer ID or notarized by Apple**, so macOS blocks it the first time:
+Cue is free and is **not signed with an Apple Developer ID or notarized by Apple**, so macOS blocks it the first time. macOS says it cannot verify that Cue is free of malware.
 
-1. Open Cue. When macOS says it cannot verify the app, click **Done**.
+1. Click **Done**. Do not click **Move to Trash**.
 2. Open **System Settings > Privacy & Security**.
 3. Scroll down to the message about Cue and click **Open Anyway**, then confirm.
 
-Only do this if you downloaded Cue from this repository. You can check the download against the SHA-256 shown on the release page:
+If there is no **Open Anyway** button, or macOS says Cue is damaged, remove the download flag in Terminal and open Cue again:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Cue.app
+```
+
+This only removes the "downloaded from the internet" flag from Cue. Only do this if you downloaded Cue from this repository.
+
+You can check the download against the SHA-256 shown on the release page:
 
 ```sh
 shasum -a 256 Cue-<version>.zip
