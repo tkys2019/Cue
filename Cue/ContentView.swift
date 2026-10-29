@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var isSendingReminders = false
     @AppStorage("showTimestamps") private var showTimestamps = false
     @AppStorage("transparency") private var transparency = 0.9
+    @AppStorage("background") private var background: CueBackground = .system
 
     var selectedCues: [CueItem] {
         store.cues.reversed().filter { selectedIDs.contains($0.id) }
@@ -86,6 +87,48 @@ struct ContentView: View {
         }
     }
 
+    var settingsMenu: some View {
+        Menu {
+            Section("Appearance") {
+                Toggle("Show timestamps", isOn: $showTimestamps)
+                Picker("Background", selection: $background) {
+                    ForEach(CueBackground.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                Picker("Transparency", selection: Binding(
+                    get: { Int((transparency * 100).rounded()) },
+                    set: { transparency = Double($0) / 100 }
+                )) {
+                    ForEach(Array(stride(from: 60, through: 100, by: 5)), id: \.self) { percent in
+                        Text("\(percent)%").tag(percent)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+            Section("Quick Launch") {
+                Text("Keyboard Shortcut: ⌘⌘")
+            }
+            Section("About") {
+                let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+                Text("Version \(version)")
+                Button("GitHub") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/tkys2019/Cue")!)
+                }
+            }
+            Divider()
+            Button("Quit Cue") {
+                NSApp.terminate(nil)
+            }
+        } label: {
+            Image(systemName: "gearshape")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+    }
+
     var body: some View {
         VStack {
             HStack {
@@ -106,6 +149,7 @@ struct ContentView: View {
                     }
                     .disabled(selectedCues.isEmpty)
                 }
+                settingsMenu
             }
             .buttonStyle(.borderless)
             .padding(.horizontal)
