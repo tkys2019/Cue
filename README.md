@@ -2,6 +2,8 @@
 
 Queue it now. Cue it later.
 
+<img src="docs/screenshot.png" alt="The Cue panel with an input field and a list of short notes" width="472">
+
 Cue is a lightweight buffer for thoughts you don't want to keep in your head.
 
 It is not a task manager.
