@@ -58,6 +58,10 @@ shasum -a 256 Cue-<version>.zip
 - Click a Cue to copy it. Right-click it to send it to Reminders. × deletes it.
 - **Select** lets you copy several Cues or send them to Reminders at once.
 - The gear menu has the appearance settings, the hover effect, and **Quit Cue**.
+- Keyboard: ⌃N or ↓ moves from input to the newest Cue. In the list, ⌃P/⌃N or ↑/↓ moves, Enter copies, Space toggles selection, ⌘A selects all, ⌘C copies the selection, ⌘R sends to Reminders, and ⌘Delete deletes one Cue outside selection mode. Escape ends selection or returns to input; it does not close the panel.
+- Open **Keyboard Shortcuts…** from the gear or with ⌘, to change any of the 14 shortcuts, including show/hide (double-tap ⌘, ⌥ or ⌃, or a key combination). In the editor, use ↑/↓, Enter to record, Enter again to confirm, Escape to cancel/done, and Delete to unassign optional shortcuts. Show/hide is paused while recording or confirming a shortcut.
+- To restore shortcuts, choose **Reset to Defaults** in that editor and press Enter to confirm. The editor is also reachable entirely by keyboard: ⌘, → press ↓ repeatedly until Reset to Defaults at the bottom is highlighted → Enter → Enter (using your current editor shortcut if changed). Arrow navigation and editor controls stay fixed; subtle list hints follow your assignments. Reopening Cue returns to input without clearing unfinished text.
+- Shortcuts are saved locally. Conflicts with shortcuts you customize in macOS System Settings cannot be detected. If a global key combination cannot be registered, the editor shows an error; reopen Cue through Finder or Spotlight to choose another shortcut.
 
 ## Privacy
 
