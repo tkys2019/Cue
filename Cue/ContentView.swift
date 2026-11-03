@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @ObservedObject var keyRouter: CueKeyRouter
     @State private var inputText = ""
     @StateObject private var store = CueStore()
     private let reminderService = ReminderService()
@@ -18,6 +19,8 @@ struct ContentView: View {
     @AppStorage("hoverColor") private var hoverColorHex = ""
     @State private var hoveredID: UUID?
     @State private var hoveredDeleteID: UUID?
+    @State private var cursorID: UUID?
+    @State private var sendingCueIDs: Set<UUID> = []
 
     var selectedCues: [CueItem] {
         store.cues.reversed().filter { selectedIDs.contains($0.id) }
@@ -33,6 +36,7 @@ struct ContentView: View {
         isInputFocused = true
     }
     func showToast(_ message: String) {
+        AccessibilityNotification.Announcement(message).post()
         toastHideTask?.cancel()
         withAnimation(.easeInOut(duration: 0.15)) {
             toastMessage = message
@@ -48,6 +52,9 @@ struct ContentView: View {
         }
     }
     func sendToReminders(_ cue: CueItem) async {
+        guard !sendingCueIDs.contains(cue.id), !isSendingReminders else { return }
+        sendingCueIDs.insert(cue.id)
+        defer { sendingCueIDs.remove(cue.id) }
         let saved = await reminderService.save(cue.text)
         if saved {
             store.delete(cue)
@@ -64,6 +71,7 @@ struct ContentView: View {
     func endSelecting() {
         selectedIDs = []
         isSelecting = false
+        if keyRouter.context == .selecting { keyRouter.context = .list }
     }
     func copySelected() {
         let text = selectedCues.map(\.text).joined(separator: "\n")
@@ -74,7 +82,7 @@ struct ContentView: View {
         endSelecting()
     }
     func sendSelectedToReminders() async {
-        if isSendingReminders {
+        if isSendingReminders || !sendingCueIDs.isEmpty {
             return
         }
         isSendingReminders = true
@@ -90,6 +98,71 @@ struct ContentView: View {
         } else {
             showToast("Failed")
         }
+    }
+
+    private func copyCue(_ cue: CueItem) {
+        NSPasteboard.general.clearContents()
+        if NSPasteboard.general.setString(cue.text, forType: .string) { showToast("Copied") }
+    }
+
+    private func returnToInput() {
+        keyRouter.context = .input
+        cursorID = nil
+        isInputFocused = true
+    }
+
+    private func enterList() {
+        guard let first = store.cues.last else { return }
+        isInputFocused = false
+        keyRouter.resignInput?()
+        cursorID = first.id
+        keyRouter.context = isSelecting ? .selecting : .list
+    }
+
+    private func moveCursor(_ offset: Int) {
+        let ids = store.cues.reversed().map(\.id)
+        guard !ids.isEmpty else { returnToInput(); return }
+        let index = cursorID.flatMap { ids.firstIndex(of: $0) } ?? 0
+        if offset < 0, index == 0, !isSelecting { returnToInput(); return }
+        cursorID = ids[min(max(index + offset, 0), ids.count - 1)]
+    }
+
+    private func perform(_ action: CueKeyAction) {
+        let cue = store.cues.first { $0.id == cursorID }
+        switch action {
+        case .save: addCue()
+        case .toList: enterList()
+        case .up: moveCursor(-1)
+        case .down: moveCursor(1)
+        case .back: returnToInput()
+        case .copy: if let cue { copyCue(cue) }
+        case .toggleSelect:
+            if let cue { isSelecting = true; keyRouter.context = .selecting; toggleSelection(cue) }
+        case .selectAll:
+            isSelecting = true
+            keyRouter.context = .selecting
+            selectedIDs = Set(store.cues.map(\.id))
+        case .copySelected: if !selectedCues.isEmpty { copySelected() }
+        case .reminders:
+            Task {
+                if isSelecting {
+                    if !selectedCues.isEmpty { await sendSelectedToReminders() }
+                } else if let cue { await sendToReminders(cue) }
+            }
+        case .delete: if let cue { store.delete(cue) }
+        case .endSelect: endSelecting()
+        case .openShortcuts: isInputFocused = false; keyRouter.openEditor()
+        case .toggle: break
+        }
+    }
+
+    private func reconcileCursor(old: [UUID], new: [UUID]) {
+        selectedIDs.formIntersection(new)
+        guard keyRouter.context != .input else { return }
+        guard !new.isEmpty else { returnToInput(); return }
+        if let cursorID, new.contains(cursorID) { return }
+        let index = cursorID.flatMap { old.firstIndex(of: $0) } ?? 0
+        cursorID = new[min(index, new.count - 1)]
     }
 
     // Item hover color: the picked color, or the defaults (accent glow, neutral highlight).
@@ -134,7 +207,10 @@ struct ContentView: View {
                 .disabled(hoverColorHex.isEmpty)
             }
             Section("Quick Launch") {
-                Text("Keyboard Shortcut: ⌘⌘")
+                Button("Keyboard Shortcuts…  \(keyRouter.display(.openShortcuts))") {
+                    isInputFocused = false
+                    keyRouter.openEditor()
+                }
             }
             Section("About") {
                 let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
@@ -153,6 +229,7 @@ struct ContentView: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
+        .accessibilityLabel("Settings")
     }
 
     var body: some View {
@@ -174,6 +251,10 @@ struct ContentView: View {
                         copySelected()
                     }
                     .disabled(selectedCues.isEmpty)
+                    if keyRouter.context == .selecting, !keyRouter.editorIsOpen {
+                        Text(keyRouter.display(.copySelected))
+                            .font(.caption2).foregroundStyle(.tertiary).accessibilityHidden(true)
+                    }
                 }
                 settingsMenu
             }
@@ -183,63 +264,25 @@ struct ContentView: View {
             TextField("", text: $inputText)
                 .focused($isInputFocused)
                 .focusEffectDisabled()
+                .disabled(keyRouter.editorIsOpen)
                 .padding()
-                .onSubmit {
-                    addCue()
-                }
-            
-            ScrollView {
-                VStack {
-                    ForEach(store.cues.reversed()) { cue in
-                        HStack{
-                            HStack {
-                                if isSelecting {
-                                    Image(systemName: selectedIDs.contains(cue.id) ? "checkmark.circle.fill" : "circle")
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(cue.text)
-                                    if showTimestamps, let createdAt = cue.createdAt {
-                                        TimelineView(.everyMinute) { context in
-                                            Text(CueItem.timestampText(for: createdAt, now: context.date))
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
+
+            if keyRouter.editorIsOpen {
+                CueShortcutsEditor(router: keyRouter)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack {
+                            ForEach(store.cues.reversed()) { cue in
+                                cueRow(cue).id(cue.id)
                             }
-                                .cueHover(cue.id, hovered: $hoveredID, style: hoverStyle, color: hoverTint)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    if isSelecting {
-                                        toggleSelection(cue)
-                                        return
-                                    }
-                                    NSPasteboard.general.clearContents()
-                                    if NSPasteboard.general.setString(cue.text, forType: .string) {
-                                        showToast("Copied")
-                                    }
-                                }
-                                .contextMenu {
-                                    if !isSelecting || selectedIDs.contains(cue.id) {
-                                        Button("Send to Reminders") {
-                                            Task {
-                                                if isSelecting {
-                                                    await sendSelectedToReminders()
-                                                } else {
-                                                    await sendToReminders(cue)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            Button("×"){
-                                store.delete(cue)
-                            }
-                            .cueHover(cue.id, hovered: $hoveredDeleteID, style: hoverStyle, color: .red)
                         }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .onChange(of: cursorID) { _, id in
+                        if let id { proxy.scrollTo(id) }
                     }
                 }
-                .frame(maxWidth: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -264,6 +307,81 @@ struct ContentView: View {
                 isInputFocused = true
             }
         }
+        .onReceive(keyRouter.commands) { perform($0) }
+        .onReceive(keyRouter.panelShown) {
+            endSelecting()
+            returnToInput()
+            DispatchQueue.main.async { isInputFocused = true }
+        }
+        .onChange(of: isSelecting) { _, selecting in
+            if keyRouter.context != .input { keyRouter.context = selecting ? .selecting : .list }
+        }
+        .onChange(of: isInputFocused) { _, focused in
+            if focused { keyRouter.context = .input; cursorID = nil }
+        }
+        .onChange(of: keyRouter.editorIsOpen) { _, open in
+            if !open, keyRouter.context == .input { isInputFocused = true }
+        }
+        .onChange(of: store.cues.reversed().map(\.id)) { old, new in
+            reconcileCursor(old: old, new: new)
+        }
+    }
+
+    private func cueRow(_ cue: CueItem) -> some View {
+        HStack {
+            HStack {
+                if isSelecting {
+                    Image(systemName: selectedIDs.contains(cue.id) ? "checkmark.circle.fill" : "circle")
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(cue.text)
+                    if showTimestamps, let createdAt = cue.createdAt {
+                        TimelineView(.everyMinute) { context in
+                            Text(CueItem.timestampText(for: createdAt, now: context.date))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .cueHover(cue.id, hovered: $hoveredID, style: hoverStyle, color: hoverTint,
+                      keyboardActive: keyRouter.context != .input && cursorID == cue.id)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if isSelecting { toggleSelection(cue); return }
+                copyCue(cue)
+            }
+            .contextMenu {
+                if !isSelecting || selectedIDs.contains(cue.id) {
+                    Button("Send to Reminders") {
+                        Task {
+                            if isSelecting { await sendSelectedToReminders() }
+                            else { await sendToReminders(cue) }
+                        }
+                    }
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAddTraits(selectedIDs.contains(cue.id) ? .isSelected : [])
+            .accessibilityAction { copyCue(cue) }
+            .accessibilityAction(named: "Send to Reminders") {
+                Task {
+                    if isSelecting {
+                        if selectedIDs.contains(cue.id) { await sendSelectedToReminders() }
+                    } else { await sendToReminders(cue) }
+                }
+            }
+            .accessibilityAction(named: "Delete") { store.delete(cue) }
+            if keyRouter.context != .input, cursorID == cue.id {
+                let actions: [CueKeyAction] = isSelecting ? [.toggleSelect, .reminders] : [.copy, .reminders, .delete]
+                Text(actions.map { keyRouter.display($0) }.filter { !$0.isEmpty }.joined(separator: " "))
+                    .font(.caption2).foregroundStyle(.tertiary).accessibilityHidden(true)
+            }
+            Button("×") { store.delete(cue) }
+                .cueHover(cue.id, hovered: $hoveredDeleteID, style: hoverStyle, color: .red)
+                .accessibilityLabel("Delete")
+        }
     }
 }
 
@@ -287,8 +405,8 @@ private struct CueHoverEffect: ViewModifier {
 }
 
 private extension View {
-    func cueHover(_ id: UUID, hovered: Binding<UUID?>, style: CueHoverStyle, color: Color) -> some View {
-        modifier(CueHoverEffect(isActive: hovered.wrappedValue == id, style: style, color: color))
+    func cueHover(_ id: UUID, hovered: Binding<UUID?>, style: CueHoverStyle, color: Color, keyboardActive: Bool = false) -> some View {
+        modifier(CueHoverEffect(isActive: hovered.wrappedValue == id || keyboardActive, style: style, color: color))
             .onHover { isHovering in
                 if isHovering {
                     hovered.wrappedValue = id
@@ -342,6 +460,6 @@ final class HoverColorPanel: NSObject {
 }
 
 #Preview {
-    ContentView()
+    ContentView(keyRouter: CueKeyRouter())
 }
 
